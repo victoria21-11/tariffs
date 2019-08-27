@@ -9,51 +9,57 @@ const Tariff = {
     },
     methods: {
         getData() {
-            axios.get('/api/tariffs')
-            .then(response => {
-                this.tariffs = response.data;
-                this.selectedTarif = _.head(this.tariffs.tarifs);
-            })
+        	this.tariffs = this.sendRequest('/api/tariffs');
+        	this.setPriceRange();
         },
-        getHighestPrice(tarifs) {
-            let result = _.last(tarifs);
-            return this.checkPriceResult(result);
+        setPriceRange() {
+        	this.tariffs.tarifs.forEach((item) => {
+        		item.lowest_price = this.getPrice(item.tarifs);
+        		item.highest_price = this.getPrice(item.tarifs, min = false);
+        	});
         },
-        getLowestPrice(tarifs) {
-            let result = _.head(tarifs);
-            return this.checkPriceResult(result);
+        getPrice(tarifs, min = true) {
+			tarifs.sort((a, b) => {
+				if (min) return b.price - a.price;
+			  	return a.price - b.price;
+			});
+			let result = tarifs[0];
+			return result.price / result.pay_period;
         },
-        checkPriceResult(result) {
-            if (result) {
-                result = result.price;
+        getColor(item) {
+            if (item.title.toLowerCase().includes('вода')) {
+                return '#1b75d9';
+            } else if (item.title.toLowerCase().includes('огонь')) {
+                return '#e74807';
+            } else if (item.title.toLowerCase().includes('земля')) {
+                return '#70603e';
             }
-            return result;
-        },
-        
+        }
     },
     template: `
-		<div class="tariffs__container">
+		<div>
 			<div class="row">
-				<div class="col-12 col-md-6 col-lg-4" v-for="item in tariffs.tarifs">
-					<div class="card rounded-0 mb-3 border-left-0 border-right-0">
-				        <div class="card-header bg-white">
+				<div class="col-12 col-md-6 col-lg-4 mb-20" v-for="item in tariffs.tarifs">
+					<div class="tariffs__item">
+				        <div class="traiffs__title">
 				            Тариф "{{ item.title }}"
 				        </div>
-				        <div class="card-body">
-				            <router-link :to="{ name: \'tariffShow\', params: { name: item.title } }" tag="div" class="d-flex align-items-center pointer">
-				                <div class="w-100">
-				                    <span class="badge badge-primary rounded-0 tariffs__speed">
-				    						{{ item.speed }} Мбит/с
-				    					</span>
-				                    <div>
-				                        {{ getLowestPrice(item.tarifs) }} - {{ getHighestPrice(item.tarifs) }} &#8381;/мес
-				                    </div>
-				                </div>
-				                <div>
-				                    <i class="fas fa-chevron-right"></i></div>
+				        <div class="tariffs__body tariffs__link">
+				            <router-link :to="{ name: \'tariffShow\', params: { name: item.title } }" tag="div">
+                                <div class="tariffs__speed" :style="{ 'background-color': getColor(item) }">
+                                    {{ item.speed }} Мбит/с
+                                </div>
+                                <div>
+                                    {{ item.lowest_price }} - {{ item.highest_price }} &#8381;/мес
+                                </div>
+                                <div class="tariffs__extra">
+                                    <div v-for="option in item.free_options">
+                                        {{ option }}
+                                    </div>
+                                </div>
 				            </router-link>
 				        </div>
-				        <div class="card-footer bg-white">
+				        <div class="tariffs__footer">
 				        	<a :href="item.link">Узнать подробнее на сайте www.sknt.ru</a>
 				        </div>
 				    </div>
@@ -63,7 +69,6 @@ const Tariff = {
 		</div>
     `
 }
-
 const TariffShow = {
     data() {
         return {
@@ -72,61 +77,48 @@ const TariffShow = {
         }
     },
     mounted() {
-    	console.log(this.name)
         this.getData();
     },
     methods: {
         getData() {
-            axios.get('/api/tariffs/info', {
-                params: {
-                    name: this.name
-                }
-            })
-            .then(response => {
-                this.tariff = response.data;
-            })
+        	this.tariff = this.sendRequest('/api/tariffs/info?name=' + this.name);
         },
-        getSinglePayment(item) {
-            return item.pay_period * item.price;
-        }
+        getDiscount(item) {
+        	let oneMonth = this.tariff.tarifs[0];
+            let priceWithoutDiscount = oneMonth.price * item.pay_period;
+            return priceWithoutDiscount - item.price;
+        },
+
+
     },
     template: `
 		<div class="" v-if="tariff">
-		    <div class="card border-0">
-		    	<router-link :to="{ name: 'tariffs' }" tag="div" class="pointer card-header tariffs__title text-center font-weight-bold">
-		        	<i class="fas fa-chevron-left float-left"></i>
-		        	Тариф "{{ tariff.title }}"
-		        </router-link>
-		        <div class="card-body pt-4 bg-light px-0 tariffs__container">
-		        	<div class="row">
-		        		<div class="col-12 col-md-6 col-lg-4" v-for="item in tariff.tarifs">
-		        			<div class="card mb-3">
-				                <div class="card-header bg-white font-weight-bold">
-				                	{{ item.pay_period }}
-				                	месяц
-				                </div>
-				                <div class="card-body">
-				                    <router-link :to="{ name: \'tariffSelection\', params: { name: tariff.title, id: item.ID } }" tag="div" class="pointer d-flex align-items-center">
-				                        <div class="w-100">
-				                        	<span class="tariffs__price-per-month">
-				                        		{{ item.price }}
-				                        		&#8381;/мес
-				                        	</span>
-				                            <div class="text-muted">
-				                            	pазовый платеж - {{ getSinglePayment(item) }} &#8381;
-				                            </div>
-				                        </div>
-				                        <div>
-				                        	<i class="fas fa-chevron-right"></i>
-				                        </div>
-				                    </router-link>
-				                </div>
-				            </div>
-		        		</div>
-		        	</div>
+            <router-link :to="{ name: 'tariffs' }" tag="div" class="tariffs__back">
+                Тариф "{{ tariff.title }}"
+            </router-link>
+            <div class="row">
+                <div class="col-12 col-md-6 col-lg-4 mb-20" v-for="item in tariff.tarifs">
+                    <div class="tariffs__item">
+                        <div class="traiffs__title">
+                            {{ item.pay_period }}
+                            месяц
+                        </div>
+                        <div class="tariffs__body tariffs__link">
+                            <router-link :to="{ name: \'tariffSelection\', params: { name: tariff.title, id: item.ID } }" tag="div">
+                                <span class="font-weight-bold">
+                                    {{ getSinglePayment(item) }}
+                                    &#8381;/мес
+                                </span>
+                                <div class="tariffs__extra">
+                                    <div>pазовый платеж - {{ item.price }} &#8381;</div>
+                                    <div v-if="getDiscount(item)">скидка - {{ getDiscount(item) }} &#8381;</div>
+                                </div>
+                            </router-link>
+                        </div>
+                    </div>
+                </div>
+            </div>
 		            
-		        </div>
-		    </div>
 		</div>
     `
 }
@@ -144,73 +136,72 @@ const TariffSelection = {
 	},
 	methods: {
 		getData() {
-			axios.get('/api/tariffs/info/versions/' + this.$route.params.id, {
-                params: {
-                    name: this.$route.params.name
-                }
-            })
-            .then(response => {
-            	this.tariff = response.data.tariff;
-            	this.version = response.data.version;
-            })
+			let data = this.sendRequest('/api/tariffs/info/versions/' + this.$route.params.id + '?name=' + this.$route.params.name);
+			this.tariff = data.tariff;
+			this.version = data.version;
 		},
 		getActiveAt() {
-			return moment().add(this.version.pay_period, 'months').format('DD.MM.YYYY');
+            let timestamp = this.version.new_payday.split('+');
+            let date = new Date(timestamp[0] * 1000);
+			let endDate = new Date(date.setMonth(date.getMonth() + parseInt(this.version.pay_period)));
+            return this.getFormattedDate(endDate);
 		},
-		getSinglePayment() {
-            return this.version.pay_period * this.version.price;
+        getFormattedDate(date) {
+            return this.getFullNumber(date.getDate()) + '.' + this.getFullNumber(date.getMonth() + 1) + '.' + date.getFullYear();
+        },
+        getFullNumber(number) {
+		    console.log(number)
+            if (number.toString().length == 1) return '0' + number;
+            return number;
         },
         selectedTariff() {
         	this.selected = true;
         }
 	},
 	template: `
-		<div class="card border-0" v-if="tariff">
-			<router-link :to="{ name: 'tariffShow', params: { name: tariff.title } }" tag="div" class="pointer card-header text-center tariffs__title font-weight-bold">
-			    <i class="fas fa-chevron-left float-left"></i>
+		<div v-if="tariff">
+			<router-link :to="{ name: 'tariffShow', params: { name: tariff.title } }" tag="div" class="tariffs__back">
 			    Выбор тарифа
 			</router-link>
-		    <div class="card-body pt-4 bg-light px-0 tariffs__container">
-		    	<div class="row">
-	        		<div class="col-12 col-md-6 col-lg-4">
-	        			<div class="card">
-				            <div class="card-header font-weight-bold">
-				            	Тариф "{{ tariff.title }}"
-				            </div>
-				            <div class="card-body lh-normal">
-				            	<div class="font-weight-bold">
-				            		Период оплаты - {{ version.pay_period }} месяцев
-					                <div>
-					                	{{ version.price }}
-					                	&#8381;/мес
-					                </div>
-				            	</div>
-				            	
-				            	<div class="my-2">
-									<div>разовый платеж -{{ getSinglePayment() }}&#8381;</div>
-				                	<div>со счета спишется -{{ getSinglePayment() }}&#8381;</div>
-				            	</div>
-				                
-				                <div class="text-muted">
-				                    <div>вступит в силу - сегодня</div>
-				                    <div>активно до - {{ getActiveAt() }}</div>
-				                </div>
-				            </div>
-				            <div class="card-footer">
-				                <button class="btn btn-success btn-block" :disabled="selected" @click="selectedTariff">
-				                	<template v-if="selected">
-				                		<i class="fas fa-check-circle"></i>
-				                	</template>
-				                	<template v-else>
-				                		Выбрать
-				                	</template>
-				                </button>
-				            </div>
-				        </div>
-	        		</div>
-    			</div>
+            <div class="row">
+                <div class="col-12 col-md-6 col-lg-4 mb-20">
+                    <div class="tariffs__item">
+                        <div class="traiffs__title">
+                            Тариф "{{ tariff.title }}"
+                        </div>
+                        <div class="tariffs__body">
+                            <div>
+                                Период оплаты - {{ version.pay_period }} месяцев
+                                <div>
+                                    {{ getSinglePayment(version) }}
+                                    &#8381;/мес
+                                </div>
+                            </div>
+                            
+                            <div class="tariffs__extra">
+                                <div>разовый платеж - {{ version.price }} &#8381;</div>
+                                <div>со счета спишется - {{ version.price }} &#8381;</div>
+                            </div>
+                            
+                            <div class="tariffs__extra text-muted">
+                                <div>вступит в силу - сегодня</div>
+                                <div>активно до - {{ getActiveAt() }}</div>
+                            </div>
+                        </div>
+                        <div class="tariffs__footer">
+                            <button class="tariffs__button" :disabled="selected" @click="selectedTariff">
+                                <template v-if="selected">
+                                    Выбран
+                                </template>
+                                <template v-else>
+                                    Выбрать
+                                </template>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
 		        
-		    </div>
 		</div>
 	`
 }
@@ -237,10 +228,28 @@ const router = new VueRouter({
     routes
 })
 
+Vue.mixin({
+  	methods: {
+	    sendRequest(url) {
+			var xhr = new XMLHttpRequest();
+			xhr.open('GET', url, false);
+			xhr.send();
+
+			if (xhr.status == 200) {
+				return JSON.parse(xhr.responseText);
+			} else {
+			  
+			}
+		},
+        getSinglePayment(item) {
+            return item.price / item.pay_period;
+        }
+  	}
+})
+
 const app = new Vue({
     router,
-    
     methods: {
-
+    	
     }
 }).$mount('#app')

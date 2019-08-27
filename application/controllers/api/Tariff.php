@@ -6,16 +6,24 @@ class Tariff extends CI_Controller {
     public function index()
     {
         $data = file_get_contents($this->resource);
+        $data = json_decode($data, true);
+
+        usort($data['tarifs'], function($a, $b) {
+            rsort($a['tarifs']);
+            rsort($b['tarifs']);
+            return $a['tarifs'][0]['price'] > $b['tarifs'][0]['price'];
+        });
+        
 		return $this->output
         ->set_content_type('application/json')
-        ->set_output($data);
+        ->set_output(json_encode($data));
     }
 
     public function show() {
         $tariff = $this->getTariff();
         return $this->output
         ->set_content_type('application/json')
-        ->set_output(json_encode($tariff));
+        ->set_output(json_encode($tariff, true));
     }
 
     public function getTariff()
