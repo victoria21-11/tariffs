@@ -150,7 +150,6 @@ const TariffSelection = {
             return this.getFullNumber(date.getDate()) + '.' + this.getFullNumber(date.getMonth() + 1) + '.' + date.getFullYear();
         },
         getFullNumber(number) {
-		    console.log(number)
             if (number.toString().length == 1) return '0' + number;
             return number;
         },

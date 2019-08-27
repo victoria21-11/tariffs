@@ -18,11 +18,7 @@
 		
 		<!-- vue-router.js -->
 		<script src="https://unpkg.com/vue-router/dist/vue-router.js"></script>
-		
-		<!-- moment.js -->
-		
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js" integrity="sha256-4iQZ6BVL4qNKlQ27TExEhBN1HFPvAvAMbFavKKosSWQ=" crossorigin="anonymous"></script>
-		
+
 		<!-- app.js -->
 		<script src="../../../assets/js/app.js" type="text/javascript"></script>
 
