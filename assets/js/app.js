@@ -73,19 +73,24 @@ const TariffShow = {
     data() {
         return {
             name: this.$route.params.name,
-            tariff: null
+            tariff: null,
+            oneMonthPrice: 0
         }
     },
     mounted() {
         this.getData();
     },
     methods: {
+        getOneMonthPrice() {
+            let result = this.tariff.tarifs.find(item => item.pay_period == 1);
+            this.oneMonthPrice = result.price;
+        },
         getData() {
         	this.tariff = this.sendRequest('/api/tariffs/info?name=' + this.name);
+            this.getOneMonthPrice();
         },
         getDiscount(item) {
-        	let oneMonth = this.tariff.tarifs[0];
-            let priceWithoutDiscount = oneMonth.price * item.pay_period;
+            let priceWithoutDiscount = this.oneMonthPrice * item.pay_period;
             return priceWithoutDiscount - item.price;
         },
 
@@ -170,7 +175,7 @@ const TariffSelection = {
                         </div>
                         <div class="tariffs__body">
                             <div>
-                                Период оплаты - {{ version.pay_period }} месяцев
+                                Период оплаты - {{ version.pay_period }} месяц
                                 <div>
                                     {{ getSinglePayment(version) }}
                                     &#8381;/мес

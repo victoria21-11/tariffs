@@ -38,6 +38,9 @@ class Tariff extends CI_Controller {
                 break;
             }
         }
+        usort($tariff['tarifs'], function($a, $b) {
+            return $a['price'] - $b['price'];
+        });
         return $tariff;
     }
 
